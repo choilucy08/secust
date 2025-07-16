@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="title">보안 테스트</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #f0f0f5;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+      transition: background 0.4s ease, color 0.4s ease;
+    }
+    h1, h2 {
+      text-align: center;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #00cec9;
+      text-shadow: 0 0 5px #00cec9;
+    }
+    section {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 0 15px rgba(0, 204, 201, 0.3);
+    }
+    input, button, textarea {
+      width: 100%;
+      padding: 12px 15px;
+      margin: 10px 0 15px 0;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+      outline: none;
+    }
+    input {
+      background: rgba(255,255,255,0.15);
+      color: #f0f0f5;
+      transition: background 0.3s ease;
+    }
+    input:focus {
+      background: rgba(255,255,255,0.3);
+    }
+    button {
+      background: #00cec9;
+      color: #1e293b;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #00b3ad;
+    }
+    .result {
+      margin-top: 8px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      user-select: none;
+      min-height: 24px;
+    }
+    .pass { color: #00e676; }
+    .fail { color: #ff4757; }
+    ul {
+      padding-left: 20px;
+      line-height: 1.4;
+      color: #b2bec3;
+    }
+    code {
+      background: rgba(0,0,0,0.2);
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-family: monospace;
+      user-select: text;
+    }
+
+    /* --- 라이트 모드 스타일 --- */
+    body.light-mode {
+      background: linear-gradient(135deg, #fdfbfb, #ebedee);
+      color: #1e1e1e;
+    }
+    body.light-mode section {
+      background: rgba(0, 0, 0, 0.05);
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+    body.light-mode h1, body.light-mode h2 {
+      color: #0984e3;
+      text-shadow: none;
+    }
+    body.light-mode input {
+      background: rgba(0, 0, 0, 0.05);
+      color: #1e1e1e;
+    }
+    body.light-mode input:focus {
+      background: rgba(0, 0, 0, 0.1);
+    }
+    body.light-mode button {
+      background: #0984e3;
+      color: white;
+    }
+    body.light-mode button:hover {
+      background: #007acc;
+    }
+    body.light-mode ul {
+      color: #2d3436;
+    }
+    body.light-mode .pass {
+      color: #2ecc71;
+    }
+    body.light-mode .fail {
+      color: #d63031;
+    }
+    body.light-mode code {
+      background: rgba(0,0,0,0.1);
+    }
+
+    /* 언어 선택박스 스타일 */
+    #langSelect {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      background: #00cec9;
+      color: #1e293b;
+      z-index: 1000;
+      transition: background 0.3s ease;
+    }
+    #langSelect:hover {
+      background: #00b3ad;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 다국어 선택 -->
+  <select id="langSelect" onchange="changeLanguage()" aria-label="언어 선택">
+    <option value="ko" selected>한국어</option>
+    <option value="en">English</option>
+    <option value="ja">日本語</option>
+    <option value="es">Español</option>
+    <option value="de">Deutsch</option>
+    <option value="fr">Français</option>
+    <option value="zh">中文</option>
+  </select>
+
+  <button id="toggleModeBtn" onclick="toggleMode()" style="margin-bottom: 20px;">☀️ 라이트 모드</button>
+
+  <h1 data-i18n="title">보안 테스트</h1>
+
+  <!-- 안전한 비밀번호 조건 -->
+  <section>
+    <h2 data-i18n="secureConditions">안전한 비밀번호 조건</h2>
+    <ul data-i18n-list="secureConditionsList">
+      <li>최소 8자 이상</li>
+      <li>대문자, 소문자, 숫자, 특수문자 포함</li>
+      <li>사전 단어 또는 연속된 문자/숫자 사용 금지</li>
+      <li>개인정보(이름, 생일 등) 포함 금지</li>
+      <li>중복 사용 금지 및 주기적 변경 권장</li>
+    </ul>
+  </section>
+
+  <!-- 비밀번호 강도 테스트 -->
+  <section>
+    <h2 data-i18n="pwdStrength">비밀번호 강도 테스트</h2>
+    <input type="password" id="passwordInput" placeholder="비밀번호 입력" data-i18n-placeholder="pwdPlaceholder"/>
+    <div id="passwordStrength" class="result"></div>
+  </section>
+
+  <!-- 비밀번호 추천 -->
+  <section>
+    <h2 data-i18n="genPwd">비밀번호 추천</h2>
+    <button onclick="generatePassword()" data-i18n="genPwd">추천 비밀번호 생성</button>
+    <input type="text" id="recommendedPwd" readonly />
+    <button onclick="copyPassword()" data-i18n="copy">복사하기</button>
+  </section>
+
+  <!-- 비밀번호 유출 검사 -->
+  <section>
+    <h2 data-i18n="pwdLeakCheck">비밀번호 유출 검사 (Have I Been Pwned)</h2>
+    <input type="password" id="checkPwd" placeholder="비밀번호 입력" data-i18n-placeholder="pwdPlaceholder" />
+    <button onclick="checkPwnedPassword()" data-i18n="checkLeak">유출 여부 확인</button>
+    <div id="pwdPwnedResult" class="result"></div>
+  </section>
+
+  <!-- 사이트 보안 등급 확인 -->
+  <section>
+    <h2 data-i18n="siteSecurity">사이트 보안 등급 확인</h2>
+    <input type="url" id="siteUrl" placeholder="사이트 주소 입력 (예: https://example.com)" data-i18n-placeholder="siteUrlPlaceholder"/>
+    <button onclick="checkSiteSecurity()" data-i18n="checkSecurity">보안 등급 확인</button>
+    <div id="siteResult" class="result"></div>
+  </section>
+
+  <!-- 악성 URL 간단 검사 -->
+  <section>
+    <h2 data-i18n="maliciousUrlCheck">악성 URL 간단 검사</h2>
+    <input type="url" id="checkUrl" placeholder="URL 입력 (예: https://example.com)" data-i18n-placeholder="urlPlaceholder"/>
+    <button onclick="checkMaliciousUrl()" data-i18n="checkMalicious">악성 URL 검사</button>
+    <div id="urlCheckResult" class="result"></div>
+  </section>
+
+  <script>
+    const i18n = {
+      title: {
+        ko: "보안 테스트",
+        en: "Security Test",
+        ja: "セキュリティテスト",
+        es: "Prueba de Seguridad",
+        de: "Sicherheitstest",
+        fr: "Test de Sécurité",
+        zh: "安全测试"
+      },
+      secureConditions: {
+        ko: "안전한 비밀번호 조건",
+        en: "Secure Password Requirements",
+        ja: "安全なパスワードの条件",
+        es: "Requisitos de Contraseña Segura",
+        de: "Sichere Passwortanforderungen",
+        fr: "Conditions de mot de passe sécurisé",
+        zh: "安全密码要求"
+      },
+      secureConditionsList: {
+        ko: [
+          "최소 8자 이상",
+          "대문자, 소문자, 숫자, 특수문자 포함",
+          "사전 단어 또는 연속된 문자/숫자 사용 금지",
+          "개인정보(이름, 생일 등) 포함 금지",
+          "중복 사용 금지 및 주기적 변경 권장"
+        ],
+        en: [
+          "At least 8 characters",
+          "Include uppercase, lowercase, numbers, and special characters",
+          "No dictionary words or sequential letters/numbers",
+          "No personal info (name, birthday, etc.)",
+          "Avoid reuse and change regularly"
+        ],
+        ja: [
+          "8文字以上",
+          "大文字、小文字、数字、特殊文字を含む",
+          "辞書の単語や連続した文字/数字を使用禁止",
+          "個人情報（名前、生年月日など）を含まない",
+          "使い回し禁止と定期的な変更推奨"
+        ],
+        es: [
+          "Al menos 8 caracteres",
+          "Incluir mayúsculas, minúsculas, números y caracteres especiales",
+          "No usar palabras del diccionario o secuencias de letras/números",
+          "No incluir información personal (nombre, cumpleaños, etc.)",
+          "Evitar reutilización y cambiar regularmente"
+        ],
+        de: [
+          "Mindestens 8 Zeichen",
+          "Groß-, Kleinbuchstaben, Zahlen und Sonderzeichen enthalten",
+          "Keine Wörter aus Wörterbüchern oder aufeinanderfolgende Zeichen/Zahlen",
+          "Keine persönlichen Daten (Name, Geburtstag, etc.)",
+          "Keine Wiederverwendung und regelmäßiges Ändern empfohlen"
+        ],
+        fr: [
+          "Au moins 8 caractères",
+          "Inclure majuscules, minuscules, chiffres et caractères spéciaux",
+          "Pas de mots du dictionnaire ou de lettres/chiffres consécutifs",
+          "Pas d'informations personnelles (nom, anniversaire, etc.)",
+          "Éviter la réutilisation et changer régulièrement"
+        ],
+        zh: [
+          "至少8个字符",
+          "包含大写字母、小写字母、数字和特殊字符",
+          "禁止使用字典词或连续的字母/数字",
+          "不包含个人信息（姓名、生日等）",
+          "避免重复使用，定期更换"
+        ]
+      },
+      pwdStrength: {
+        ko: "비밀번호 강도 테스트",
+        en: "Password Strength Test",
+        ja: "パスワードの強度テスト",
+        es: "Prueba de Fortaleza de Contraseña",
+        de: "Passwortstärke-Test",
+        fr: "Test de robustesse du mot de passe",
+        zh: "密码强度测试"
+      },
+      pwdPlaceholder: {
+        ko: "비밀번호 입력",
+        en: "Enter password",
+        ja: "パスワード入力",
+        es: "Ingrese contraseña",
+        de: "Passwort eingeben",
+        fr: "Entrer le mot de passe",
+        zh: "输入密码"
+      },
+      genPwd: {
+        ko: "추천 비밀번호 생성",
+        en: "Generate Password",
+        ja: "パスワード生成",
+        es: "Generar Contraseña",
+        de: "Passwort generieren",
+        fr: "Générer un mot de passe",
+        zh: "生成密码"
+      },
+      copy: {
+        ko: "복사하기",
+        en: "Copy",
+        ja: "コピー",
+        es: "Copiar",
+        de: "Kopieren",
+        fr: "Copier",
+        zh: "复制"
+      },
+      siteSecurity: {
+        ko: "사이트 보안 등급 확인",
+        en: "Check Site Security Grade",
+        ja: "サイトのセキュリティ評価",
+        es: "Verificar grado de seguridad del sitio",
+        de: "Website-Sicherheitsbewertung",
+        fr: "Vérifier la sécurité du site",
+        zh: "网站安全等级检查"
+      },
+      siteUrlPlaceholder: {
+        ko: "사이트 주소 입력 (예: https://example.com)",
+        en: "Enter site URL (e.g., https://example.com)",
+        ja: "サイトのURLを入力 (例: https://example.com)",
+        es: "Introduzca la URL del sitio (ejemplo: https://example.com)",
+        de: "Website-URL eingeben (z.B. https://example.com)",
+        fr: "Entrez l'URL du site (ex: https://example.com)",
+        zh: "输入网站地址 (例如：https://example.com)"
+      },
+      checkSecurity: {
+        ko: "보안 등급 확인",
+        en: "Check Security",
+        ja: "セキュリティを確認",
+        es: "Verificar seguridad",
+        de: "Sicherheit prüfen",
+        fr: "Vérifier la sécurité",
+        zh: "检查安全性"
+      },
+      pwdLeakCheck: {
+        ko: "비밀번호 유출 검사 (Have I Been Pwned)",
+        en: "Password Leak Check (Have I Been Pwned)",
+        ja: "パスワード漏えいチェック (Have I Been Pwned)",
+        es: "Verificación de fuga de contraseña (Have I Been Pwned)",
+        de: "Passwort-Leckprüfung (Have I Been Pwned)",
+        fr: "Vérification fuite de mot de passe (Have I Been Pwned)",
+        zh: "密码泄漏检测 (Have I Been Pwned)"
+      },
+      checkLeak: {
+        ko: "유출 여부 확인",
+        en: "Check Leak",
+        ja: "漏えいを確認",
+        es: "Verificar fuga",
+        de: "Leck prüfen",
+        fr: "Vérifier fuite",
+        zh: "检查泄漏"
+      },
+      maliciousUrlCheck: {
+        ko: "악성 URL 간단 검사",
+        en: "Simple Malicious URL Check",
+        ja: "簡単な悪意のあるURLチェック",
+        es: "Chequeo simple de URL maliciosa",
+        de: "Einfache bösartige URL-Prüfung",
+        fr: "Vérification simple des URL malveillantes",
+        zh: "简单恶意URL检查"
+      },
+      urlPlaceholder: {
+        ko: "URL 입력 (예: https://example.com)",
+        en: "Enter URL (e.g., https://example.com)",
+        ja: "URLを入力 (例: https://example.com)",
+        es: "Introduzca URL (ejemplo: https://example.com)",
+        de: "URL eingeben (z.B. https://example.com)",
+        fr: "Entrez l'URL (ex: https://example.com)",
+        zh: "输入URL（例如：https://example.com）"
+      },
+      checkMalicious: {
+        ko: "악성 URL 검사",
+        en: "Check Malicious URL",
+        ja: "悪意のあるURLを確認",
+        es: "Verificar URL maliciosa",
+        de: "Bösartige URL prüfen",
+        fr: "Vérifier URL malveillante",
+        zh: "检查恶意URL"
+      },
+      alertCopied: {
+        ko: "추천 비밀번호가 복사되었습니다!",
+        en: "Recommended password copied!",
+        ja: "推奨パスワードをコピーしました！",
+        es: "¡Contraseña recomendada copiada!",
+        de: "Empfohlenes Passwort kopiert!",
+        fr: "Mot de passe recommandé copié !",
+        zh: "推荐密码已复制！"
+      },
+      alertCopyFail: {
+        ko: "복사 실패! 직접 선택해서 복사해주세요.",
+        en: "Copy failed! Please select and copy manually.",
+        ja: "コピーに失敗しました。手動で選択してコピーしてください。",
+        es: "¡Copia fallida! Por favor seleccione y copie manualmente.",
+        de: "Kopieren fehlgeschlagen! Bitte manuell auswählen und kopieren.",
+        fr: "Échec de la copie ! Veuillez sélectionner et copier manuellement.",
+        zh: "复制失败！请手动选择复制。"
+      },
+      siteUrlFail: {
+        ko: "사이트 주소를 입력해주세요.",
+        en: "Please enter site URL.",
+        ja: "サイトのURLを入力してください。",
+        es: "Por favor, introduzca la URL del sitio.",
+        de: "Bitte Website-URL eingeben.",
+        fr: "Veuillez entrer l'URL du site.",
+        zh: "请输入网站地址。"
+      },
+      invalidUrl: {
+        ko: "유효한 URL이 아닙니다.",
+        en: "Invalid URL.",
+        ja: "無効なURLです。",
+        es: "URL inválida.",
+        de: "Ungültige URL.",
+        fr: "URL invalide.",
+        zh: "无效的URL。"
+      },
+      siteGradeHigh: {
+        ko: "높음 (HTTPS 사용, 도메인 짧음)",
+        en: "High (HTTPS, short domain)",
+        ja: "高い (HTTPS使用、短いドメイン)",
+        es: "Alto (uso de HTTPS, dominio corto)",
+        de: "Hoch (HTTPS, kurze Domain)",
+        fr: "Élevé (HTTPS, domaine court)",
+        zh: "高（使用HTTPS，域名短）"
+      },
+      siteGradeMedium: {
+        ko: "중간 (HTTPS 미사용, 도메인 길음)",
+        en: "Medium (No HTTPS, long domain)",
+        ja: "中 (HTTPS未使用、長いドメイン)",
+        es: "Medio (sin HTTPS, dominio largo)",
+        de: "Mittel (kein HTTPS, lange Domain)",
+        fr: "Moyen (pas de HTTPS, domaine long)",
+        zh: "中（未使用HTTPS，域名长）"
+      },
+      siteGradeLow: {
+        ko: "낮음 (HTTP, 의심스러운 도메인)",
+        en: "Low (HTTP, suspicious domain)",
+        ja: "低い (HTTP、疑わしいドメイン)",
+        es: "Bajo (HTTP, dominio sospechoso)",
+        de: "Niedrig (HTTP, verdächtige Domain)",
+        fr: "Faible (HTTP, domaine suspect)",
+        zh: "低（HTTP，疑似域名）"
+      },
+      siteGradeError: {
+        ko: "사이트 주소를 확인해주세요.",
+        en: "Please check the site URL.",
+        ja: "サイトのURLを確認してください。",
+        es: "Por favor, revise la URL del sitio.",
+        de: "Bitte überprüfen Sie die Website-URL.",
+        fr: "Veuillez vérifier l'URL du site.",
+        zh: "请检查网站地址。"
+      }
+    };
+
+    let currentLang = 'ko';
+
+    // 다국어 텍스트 적용 함수
+    function applyI18n() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if(i18n[key] && i18n[key][currentLang]) {
+          el.textContent = i18n[key][currentLang];
+        }
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if(i18n[key] && i18n[key][currentLang]) {
+          el.placeholder = i18n[key][currentLang];
+        }
+      });
+      document.querySelectorAll('[data-i18n-list]').forEach(el => {
+        const key = el.getAttribute('data-i18n-list');
+        if(i18n[key] && i18n[key][currentLang]) {
+          const list = i18n[key][currentLang];
+          el.innerHTML = list.map(item => `<li>${item}</li>`).join('');
+        }
+      });
+    }
+
+    function changeLanguage() {
+      const select = document.getElementById('langSelect');
+      currentLang = select.value;
+      applyI18n();
+    }
+
+    // 라이트/다크 모드 토글
+    function toggleMode() {
+      const body = document.body;
+      const btn = document.getElementById('toggleModeBtn');
+      if(body.classList.contains('light-mode')) {
+        body.classList.remove('light-mode');
+        btn.textContent = '☀️ 라이트 모드';
+      } else {
+        body.classList.add('light-mode');
+        btn.textContent = '🌙 다크 모드';
+      }
+    }
+
+    // 비밀번호 강도 체크 (간단 버전)
+    function checkPasswordStrength(pwd) {
+      let score = 0;
+      if(pwd.length >= 8) score++;
+      if(/[A-Z]/.test(pwd)) score++;
+      if(/[a-z]/.test(pwd)) score++;
+      if(/[0-9]/.test(pwd)) score++;
+      if(/[^A-Za-z0-9]/.test(pwd)) score++;
+
+      if(score <= 2) return {text: "약함", className:"fail"};
+      if(score === 3) return {text: "보통", className:"fail"};
+      if(score >= 4) return {text: "강함", className:"pass"};
+    }
+
+    document.getElementById('passwordInput').addEventListener('input', e => {
+      const pwd = e.target.value;
+      const res = checkPasswordStrength(pwd);
+      const strengthEl = document.getElementById('passwordStrength');
+      if(pwd.length === 0) {
+        strengthEl.textContent = "";
+        return;
+      }
+      strengthEl.textContent = res.text;
+      strengthEl.className = 'result ' + res.className;
+    });
+
+    // 비밀번호 추천 생성
+    function generatePassword() {
+      const length = 12;
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+";
+      let pwd = "";
+      for(let i=0; i<length; i++) {
+        pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      document.getElementById('recommendedPwd').value = pwd;
+    }
+
+    // 비밀번호 복사
+    function copyPassword() {
+      const input = document.getElementById('recommendedPwd');
+      input.select();
+      input.setSelectionRange(0, 99999);
+      try {
+        document.execCommand('copy');
+        alert(i18n.alertCopied[currentLang]);
+      } catch {
+        alert(i18n.alertCopyFail[currentLang]);
+      }
+      window.getSelection().removeAllRanges();
+    }
+
+    // Have I Been Pwned API 비밀번호 유출 체크 (K-Anonymity)
+    async function checkPwnedPassword() {
+      const pwd = document.getElementById('checkPwd').value;
+      const resDiv = document.getElementById('pwdPwnedResult');
+      resDiv.textContent = "";
+      if(!pwd) {
+        resDiv.textContent = "비밀번호를 입력해주세요.";
+        resDiv.className = "result fail";
+        return;
+      }
+      const shaObj = new jsSHA("SHA-1", "TEXT");
+      shaObj.update(pwd);
+      const hash = shaObj.getHash("HEX").toUpperCase();
+      const prefix = hash.slice(0,5);
+      const suffix = hash.slice(5);
+
+      try {
+        const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
+        if(!response.ok) throw new Error("API 호출 실패");
+        const text = await response.text();
+        const lines = text.split('\n');
+        let found = false;
+        for(let line of lines) {
+          const [hashSuffix, count] = line.split(':');
+          if(hashSuffix === suffix) {
+            resDiv.textContent = `이 비밀번호는 ${count.trim()}회 이상 유출되었습니다! 사용하지 마세요.`;
+            resDiv.className = "result fail";
+            found = true;
+            break;
+          }
+        }
+        if(!found) {
+          resDiv.textContent = "이 비밀번호는 유출되지 않았습니다.";
+          resDiv.className = "result pass";
+        }
+      } catch(e) {
+        resDiv.textContent = "유출 검사 중 오류가 발생했습니다.";
+        resDiv.className = "result fail";
+      }
+    }
+
+    // 사이트 보안 등급 간단 체크
+    function checkSiteSecurity() {
+      const urlInput = document.getElementById('siteUrl').value.trim();
+      const resDiv = document.getElementById('siteResult');
+      resDiv.textContent = "";
+      if(!urlInput) {
+        resDiv.textContent = i18n.siteUrlFail[currentLang];
+        resDiv.className = "result fail";
+        return;
+      }
+      let url;
+      try {
+        url = new URL(urlInput);
+      } catch {
+        resDiv.textContent = i18n.invalidUrl[currentLang];
+        resDiv.className = "result fail";
+        return;
+      }
+
+      // 매우 간단한 평가: HTTPS 여부 + 도메인 길이 체크
+      let grade = "";
+      if(url.protocol === "https:" && url.hostname.length <= 20) {
+        grade = i18n.siteGradeHigh[currentLang];
+        resDiv.className = "result pass";
+      } else if(url.protocol === "https:" || url.hostname.length <= 20) {
+        grade = i18n.siteGradeMedium[currentLang];
+        resDiv.className = "result";
+      } else if(url.protocol === "http:") {
+        grade = i18n.siteGradeLow[currentLang];
+        resDiv.className = "result fail";
+      } else {
+        grade = i18n.siteGradeError[currentLang];
+        resDiv.className = "result fail";
+      }
+      resDiv.textContent = `보안 등급: ${grade}`;
+    }
+
+    // 악성 URL 검사 (간단한 위험 단어 검사)
+    function checkMaliciousUrl() {
+      const urlInput = document.getElementById('checkUrl').value.trim().toLowerCase();
+      const resDiv = document.getElementById('urlCheckResult');
+      resDiv.textContent = "";
+      if(!urlInput) {
+        resDiv.textContent = "URL을 입력해주세요.";
+        resDiv.className = "result fail";
+        return;
+      }
+      const suspiciousWords = ['phishing', 'malware', 'virus', 'attack', 'fake', 'danger', 'hack'];
+      const found = suspiciousWords.some(word => urlInput.includes(word));
+      if(found) {
+        resDiv.textContent = "의심스러운 URL입니다! 접근을 주의하세요.";
+        resDiv.className = "result fail";
+      } else {
+        resDiv.textContent = "특별한 위험 신호가 발견되지 않았습니다.";
+        resDiv.className = "result pass";
+      }
+    }
+
+    // SHA-1 해시 함수 라이브러리 (jsSHA) 동적 로드
+    (function loadJsSha() {
+      const script = document.createElement('script');
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/jsSHA/2.4.2/sha.js";
+      script.onload = () => console.log("jsSHA loaded");
+      document.head.appendChild(script);
+    })();
+
+    // 초기 다국어 적용
+    applyI18n();
+  </script>
+
+</body>
+</html>
